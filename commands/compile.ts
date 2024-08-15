@@ -1,0 +1,91 @@
+import dotenv from 'dotenv';
+
+import z from 'zod';
+import { camelCase } from 'change-case';
+import { parser } from 'zod-opts';
+
+import { CompileArgsSchema } from '../lib/crx/compile';
+import { Options } from 'zod-opts/dist/type';
+
+const ServerArgsSchema = z.object({
+  port: z.number(),
+  hotReload: z.coerce
+    .string()
+    .transform(value => !!value)
+    .optional(),
+});
+
+const ArgsSchema = CompileArgsSchema.merge(ServerArgsSchema);
+
+export function parseArgs() {
+  const options = {
+    srcExtensionDir: {
+      type: ArgsSchema.shape.srcExtensionDir,
+      alias: 's',
+    },
+    updateUrl: {
+      type: ArgsSchema.shape.updateUrl,
+      description: 'Public url to crx-server xml file',
+    },
+    privateKeyPath: {
+      type: ArgsSchema.shape.privateKeyPath,
+      alias: 'k',
+      description: 'Private key path',
+    },
+    dstDir: {
+      type: ArgsSchema.shape.dstDir,
+      description: 'Destination served crx-server',
+    },
+    enableOverridingManifest: {
+      type: ArgsSchema.shape.enableOverridingManifest.default(true),
+      description: 'Enable overriding manifest', // for now, todo make generic
+    },
+    hotReload: {
+      type: ArgsSchema.shape.hotReload,
+      description: 'Trigger re-compile on changes to src-extension',
+    },
+    hostname: {
+      type: z.string().default('0.0.0.0'),
+      description: 'Port to run the server on',
+    },
+    port: {
+      type: ArgsSchema.shape.port,
+      alias: 'p',
+      description: 'Port to run the server on',
+    },
+    loadFromEnvFile: {
+      type: z.string().optional(),
+      description: 'Load from .env',
+    },
+    compileOnStart: {
+      type: z.string().optional(),
+      description: 'Compile on starting server',
+    },
+  } satisfies Options;
+  const parsed = parser().name('crx-server').options(options);
+
+  // try loading from env file
+  if (process.argv.includes('--loadFromEnvFile')) {
+    console.log('loading from env file');
+    const optionsKeys = Object.keys(options);
+    const args = [] as string[];
+    const envVars = dotenv.config({ path: '.env' });
+    if (envVars.error) {
+      console.error('Failed to load env file', envVars.error);
+      throw envVars.error;
+    }
+    for (const key in envVars.parsed) {
+      const camelKey = camelCase(key);
+      if (optionsKeys.includes(camelKey)) {
+        args.push(`--${camelKey}`, envVars.parsed[key]);
+      }
+    }
+    try {
+      return parsed.parse(args);
+    } catch (e) {
+      console.warn('Failed to parse args from env file, args:', args);
+      throw e;
+    }
+  }
+  return parsed.parse();
+}
