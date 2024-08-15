@@ -20,7 +20,7 @@ export function patchManifest(args: { privateKeyPath: string; manifestFilepath: 
     'patch',
   );
 
-  parsedManifest.xmlUpdateUrl = args.xmlUpdateUrl;
+  parsedManifest.update_url = args.xmlUpdateUrl;
   cachedVersion.setVersion(parsedManifest.version as Version);
 
   fs.writeFileSync(args.manifestFilepath, JSON.stringify(parsedManifest, null, 2));
