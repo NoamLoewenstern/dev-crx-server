@@ -3,6 +3,8 @@ import fs from 'fs';
 import z from 'zod';
 export type Version = `${number}.${number}.${number}`;
 export type SemVersion = 'major' | 'minor' | 'patch' | Version;
+import crypto from 'crypto';
+import os from 'os';
 
 export function patchManifest(args: { privateKeyPath: string; manifestFilepath: string; xmlUpdateUrl: string }) {
   if (!fs.existsSync(args.manifestFilepath)) {
@@ -10,13 +12,23 @@ export function patchManifest(args: { privateKeyPath: string; manifestFilepath: 
   }
 
   const parsedManifest = ManifestSchema.passthrough().parse(JSON.parse(fs.readFileSync(args.manifestFilepath, 'utf8')));
+
+  const cachedVersion = getCachedVersion(`${parsedManifest.name}${args.xmlUpdateUrl}`);
   parsedManifest.key = createPublicKeyForManifest(args.privateKeyPath);
-  parsedManifest.version = bumpManifestVersion((parsedManifest.version || '0.0.0') as Version);
+  parsedManifest.version = incrementVersion(
+    getMaxVersion(cachedVersion.getVersion() as Version, parsedManifest.version as Version),
+    'patch',
+  );
+
   parsedManifest.xmlUpdateUrl = args.xmlUpdateUrl;
+  cachedVersion.setVersion(parsedManifest.version as Version);
+
   fs.writeFileSync(args.manifestFilepath, JSON.stringify(parsedManifest, null, 2));
 }
 
 function getMaxVersion(ver1: Version, ver2: Version): Version {
+  if (!ver1) return ver2;
+  if (!ver2) return ver1;
   const v1 = ver1.split('.').map(Number);
   const v2 = ver2.split('.').map(Number);
   for (let i = 0; i < 3; i++) {
@@ -31,28 +43,29 @@ const ManifestSchema = z.object({
   key: z.string(),
 });
 
-let cachedPrivateKeyPath: string | null = null;
 function createPublicKeyForManifest(privateKeyPath: string) {
-  if (!cachedPrivateKeyPath) {
-    if (!fs.existsSync(privateKeyPath)) {
-      throw new Error('Private key path does not exist');
-    }
-    cachedPrivateKeyPath = privateKeyPath;
+  if (!fs.existsSync(privateKeyPath)) {
+    throw new Error('Private key path does not exist');
   }
-  if (cachedPrivateKeyPath && cachedPrivateKeyPath !== privateKeyPath) {
-    throw new Error('Private key path changed');
-  }
-
-  return generatePublicKey(fs.readFileSync(cachedPrivateKeyPath));
+  return generatePublicKey(fs.readFileSync(privateKeyPath));
 }
 
-let prevManifestVersion: Version = '0.0.0';
-function bumpManifestVersion(version: Version, semVersion: SemVersion = 'patch') {
-  const updatedVersion = incrementVersion(getMaxVersion(version, prevManifestVersion), semVersion);
+function getCachedVersion(keyId: string) {
+  const id = crypto.createHash('md5').update(keyId, 'utf-8').digest('hex');
+  const cachedVersionFilepath = `${os.tmpdir()}/crx-server/${id}/version`;
+  if (!fs.existsSync(`${os.tmpdir()}/crx-server/${id}`)) {
+    fs.mkdirSync(`${os.tmpdir()}/crx-server/${id}`, { recursive: true });
+    fs.writeFileSync(cachedVersionFilepath, '');
+  }
 
-  prevManifestVersion = updatedVersion;
-
-  return prevManifestVersion;
+  return {
+    getVersion() {
+      return fs.readFileSync(cachedVersionFilepath, 'utf-8').trim() as Version | '';
+    },
+    setVersion(version: Version) {
+      fs.writeFileSync(cachedVersionFilepath, version);
+    },
+  };
 }
 
 function incrementVersion(ver: Version, sem: SemVersion): Version {
