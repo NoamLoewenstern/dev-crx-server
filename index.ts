@@ -1,7 +1,7 @@
-import { parseArgs } from './commands/compile';
-import { generateCrx } from './lib/crx/compile';
-import { generateExtensionId, generatePublicKey } from './lib/crx/utils';
-import { initServer, serveServer } from './server';
+import { parseArgs } from './src/commands/compile';
+import { generateCrx } from './src/lib/crx/compile';
+import { generateExtensionId, generatePublicKey } from './src/lib/crx/utils';
+import { initServer, serveServer } from './src/server';
 import pDebounce from 'p-debounce';
 import { watch } from 'node:fs';
 

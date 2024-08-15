@@ -1,11 +1,11 @@
 import dotenv from 'dotenv';
-
+import fs from 'fs';
 import z from 'zod';
 import { camelCase } from 'change-case';
 import { parser } from 'zod-opts';
+import { Options } from 'zod-opts/dist/type';
 
 import { CompileArgsSchema } from '../lib/crx/compile';
-import { Options } from 'zod-opts/dist/type';
 
 const ServerArgsSchema = z.object({
   port: z.number(),
@@ -61,11 +61,16 @@ export function parseArgs() {
   const parsed = parser().name('crx-server').options(options);
 
   // try loading from env file
-  if (process.argv.includes('--loadFromEnvFile')) {
+  const idxEnv = process.argv.indexOf('--loadFromEnvFile');
+  if (idxEnv > -1) {
+    let envFilepath = process.argv[idxEnv + 1] || '.env';
+    if (envFilepath && !fs.existsSync(envFilepath)) {
+      console.error('env file does not exist', envFilepath);
+    }
     console.log('loading from env file');
     const optionsKeys = Object.keys(options);
     const args = [] as string[];
-    const envVars = dotenv.config({ path: '.env' });
+    const envVars = dotenv.config({ path: envFilepath });
     if (envVars.error) {
       console.error('Failed to load env file', envVars.error);
       throw envVars.error;
