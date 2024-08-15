@@ -36,10 +36,6 @@ export function parseArgs() {
       type: ArgsSchema.shape.dstDir,
       description: 'Destination served crx-server',
     },
-    enableOverridingManifest: {
-      type: ArgsSchema.shape.enableOverridingManifest.default(true),
-      description: 'Enable overriding manifest', // for now, todo make generic
-    },
     hotReload: {
       type: ArgsSchema.shape.hotReload,
       description: 'Trigger re-compile on changes to src-extension',
