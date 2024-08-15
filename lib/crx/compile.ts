@@ -3,6 +3,7 @@ import fs from 'fs';
 import z from 'zod';
 // @ts-expect-error crx doesn't have types
 import ChromeExtension from 'crx';
+import os from 'os';
 
 import { patchManifest as patchManifest } from './fixupManifest';
 
@@ -20,7 +21,6 @@ export const CompileArgsSchema = z.object({
     return true;
   }),
   extensionId: z.string().optional(),
-  enableOverridingManifest: z.boolean(), // for now is must, later implement the generic option
 });
 export type CompileArgs = z.infer<typeof CompileArgsSchema>;
 
@@ -29,16 +29,16 @@ export async function generateCrx(args: CompileArgs) {
   if (!fs.existsSync(args.dstDir)) {
     fs.mkdirSync(args.dstDir, { recursive: true });
   }
+  const tempDir = path.join(os.tmpdir(), 'crx-server', Date.now().toString());
+  fs.mkdirSync(tempDir, { recursive: true });
+  fs.cpSync(args.srcExtensionDir, tempDir, { recursive: true });
 
   const crxFilePath = path.join(args.dstDir, 'extension.crx');
   const xmlFilepath = path.join(args.dstDir, 'update.xml');
   const extensionDownloadUrl = `${args.updateUrl}/${'extension.crx'}`;
   const xmlUpdateUrl = `${args.updateUrl}/'update.xml`;
 
-  const manifestFilepath = path.join(args.srcExtensionDir, 'manifest.json');
-  if (!args.enableOverridingManifest) {
-    // todo: implement
-  }
+  const manifestFilepath = path.join(tempDir, 'manifest.json');
   patchManifest({
     privateKeyPath: args.privateKeyPath,
     manifestFilepath,
@@ -47,11 +47,12 @@ export async function generateCrx(args: CompileArgs) {
 
   await packCrx({
     privateKeyPath: args.privateKeyPath,
-    srcExtensionDir: args.srcExtensionDir,
+    srcExtensionDir: tempDir,
     extensionDownloadUrl,
     xmlFilepath,
     crxFilePath,
   });
+
   console.log(
     `crx generated at: ${crxFilePath} with version: ${JSON.parse(fs.readFileSync(manifestFilepath, 'utf8')).version}`,
   );
