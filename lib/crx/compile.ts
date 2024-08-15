@@ -4,8 +4,11 @@ import z from 'zod';
 // @ts-expect-error crx doesn't have types
 import ChromeExtension from 'crx';
 import os from 'os';
+import { Mutex } from 'async-mutex';
 
-import { patchManifest as patchManifest } from './fixupManifest';
+const mutex = new Mutex();
+
+import { patchManifest } from './fixupManifest';
 
 export const CompileArgsSchema = z.object({
   srcExtensionDir: z.string().refine(value => fs.existsSync(value)),
@@ -25,37 +28,43 @@ export const CompileArgsSchema = z.object({
 export type CompileArgs = z.infer<typeof CompileArgsSchema>;
 
 export async function generateCrx(args: CompileArgs) {
-  console.log('packing crx generation...');
-  if (!fs.existsSync(args.dstDir)) {
-    fs.mkdirSync(args.dstDir, { recursive: true });
+  if (mutex.isLocked()) {
+    console.log('generateCrx is already running, skipping...');
+    return;
   }
-  const tempDir = path.join(os.tmpdir(), 'crx-server', Date.now().toString());
-  fs.mkdirSync(tempDir, { recursive: true });
-  fs.cpSync(args.srcExtensionDir, tempDir, { recursive: true });
+  await mutex.runExclusive(async () => {
+    console.log('packing crx generation...');
+    if (!fs.existsSync(args.dstDir)) {
+      fs.mkdirSync(args.dstDir, { recursive: true });
+    }
+    const tempDir = path.join(os.tmpdir(), 'crx-server', Date.now().toString());
+    fs.mkdirSync(tempDir, { recursive: true });
+    fs.cpSync(args.srcExtensionDir, tempDir, { recursive: true });
 
-  const crxFilePath = path.join(args.dstDir, 'extension.crx');
-  const xmlFilepath = path.join(args.dstDir, 'update.xml');
-  const extensionDownloadUrl = `${args.updateUrl}/${'extension.crx'}`;
-  const xmlUpdateUrl = `${args.updateUrl}/'update.xml`;
+    const crxFilePath = path.join(args.dstDir, 'extension.crx');
+    const xmlFilepath = path.join(args.dstDir, 'update.xml');
+    const extensionDownloadUrl = `${args.updateUrl}/${'extension.crx'}`;
+    const xmlUpdateUrl = `${args.updateUrl}/update.xml`;
 
-  const manifestFilepath = path.join(tempDir, 'manifest.json');
-  patchManifest({
-    privateKeyPath: args.privateKeyPath,
-    manifestFilepath,
-    xmlUpdateUrl,
+    const manifestFilepath = path.join(tempDir, 'manifest.json');
+    patchManifest({
+      privateKeyPath: args.privateKeyPath,
+      manifestFilepath,
+      xmlUpdateUrl,
+    });
+
+    await packCrx({
+      privateKeyPath: args.privateKeyPath,
+      srcExtensionDir: tempDir,
+      extensionDownloadUrl,
+      xmlFilepath,
+      crxFilePath,
+    });
+
+    console.log(
+      `crx generated at: ${crxFilePath} with version: ${JSON.parse(fs.readFileSync(manifestFilepath, 'utf8')).version}`,
+    );
   });
-
-  await packCrx({
-    privateKeyPath: args.privateKeyPath,
-    srcExtensionDir: tempDir,
-    extensionDownloadUrl,
-    xmlFilepath,
-    crxFilePath,
-  });
-
-  console.log(
-    `crx generated at: ${crxFilePath} with version: ${JSON.parse(fs.readFileSync(manifestFilepath, 'utf8')).version}`,
-  );
 }
 
 function packCrx(args: {
