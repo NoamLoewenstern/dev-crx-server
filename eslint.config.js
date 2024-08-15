@@ -11,7 +11,7 @@ export default [
     rules: {
       'no-console': 'off',
       semi: ['warn', 'always'],
-      'no-explicit-any': 'off',
+      'no-explicit-any': ['warn', 'always'],
     },
   },
 ];
