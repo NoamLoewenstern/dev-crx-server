@@ -1,4 +1,4 @@
-import { generatePublicKey, generateExtensionId } from './utils';
+import { generatePublicKey, generateExtensionId } from './utils.js';
 import { expect, describe, test } from 'vitest';
 
 const PRIVATE_KEY_STRING = `-----BEGIN PRIVATE KEY-----

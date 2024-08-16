@@ -5,7 +5,7 @@ import { camelCase } from 'change-case';
 import { parser } from 'zod-opts';
 import { Options } from 'zod-opts/dist/type';
 
-import { CompileArgsSchema } from '../lib/crx/compile';
+import { CompileArgsSchema } from '../lib/crx/compile.js';
 
 const ServerArgsSchema = z.object({
   port: z.number(),

@@ -1,4 +1,4 @@
-import { generatePublicKey } from './utils';
+import { generatePublicKey } from './utils.js';
 import fs from 'fs';
 import z from 'zod';
 export type Version = `${number}.${number}.${number}`;

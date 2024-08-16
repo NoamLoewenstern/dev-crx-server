@@ -32,9 +32,6 @@ importers:
       p-debounce:
         specifier: ^4.0.0
         version: 4.0.0
-      typescript:
-        specifier: ^5.5.4
-        version: 5.5.4
       zod:
         specifier: ^3.23.8
         version: 3.23.8
@@ -60,6 +57,9 @@ importers:
       tsx:
         specifier: ^4.17.0
         version: 4.17.0
+      typescript:
+        specifier: ^5.5.4
+        version: 5.5.4
       typescript-eslint:
         specifier: ^8.1.0
         version: 8.1.0(eslint@9.9.0)(typescript@5.5.4)

@@ -8,7 +8,7 @@ import { Mutex } from 'async-mutex';
 
 const mutex = new Mutex();
 
-import { patchManifest } from './fixupManifest';
+import { patchManifest } from './fixupManifest.js';
 
 export const CompileArgsSchema = z.object({
   srcExtensionDir: z.string().refine(value => fs.existsSync(value)),

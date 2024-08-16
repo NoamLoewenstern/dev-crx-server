@@ -1,17 +1,20 @@
 {
-  "name": "crx-server",
-  "module": "index.ts",
+  "name": "dev-crx-server",
   "type": "module",
-  "main": "index.ts",
+  "version": "1.0.2",
   "scripts": {
     "start": "tsx index.ts --srcExtensionDir <string> --updateUrl <string> --privateKeyPath <string> --dstDir <string> --enableOverridingManifest --hotReload <string> --hostname <string> --port <number> --compileOnStart true",
-    "startFromEnv": "tsx index.ts --loadFromEnvFile",
+    "start:load-env": "tsx index.ts --loadFromEnvFile",
     "dev": "tsx watch index.ts --loadFromEnvFile",
-    "startTunnel": "ssh -R crx-server.serveo.net:80:localhost:8001 serveo.net",
+    "start:tunnel": "ssh -R dev-crx-server.serveo.net:80:localhost:8001 serveo.net",
+    "build": "rm -rf dist ; tsc",
+    "publish": "pnpm publish --no-git-check",
+    "run:npx": "npx dev-crx-server",
     "test": "vitest"
   },
+  "main": "dist/cli.js",
   "bin": {
-    "crx-server": "./index.ts"
+    "dev-crx-server": "./dist/cli.js"
   },
   "dependencies": {
     "@hono/node-server": "^1.12.0",
@@ -22,7 +25,6 @@
     "hono": "^4.5.5",
     "node-rsa": "^1.1.1",
     "p-debounce": "^4.0.0",
-    "typescript": "^5.5.4",
     "zod": "^3.23.8",
     "zod-opts": "^0.1.8"
   },
@@ -33,6 +35,7 @@
     "eslint": "^9.9.0",
     "globals": "^15.9.0",
     "tsx": "^4.17.0",
+    "typescript": "^5.5.4",
     "typescript-eslint": "^8.1.0",
     "vitest": "^2.0.5"
   }
