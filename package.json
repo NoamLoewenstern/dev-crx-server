@@ -4,8 +4,8 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "startServer": "tsx index.ts --srcExtensionDir <string> --updateUrl <string> --privateKeyPath <string> --dstDir <string> --enableOverridingManifest --hotReload <string> --hostname <string> --port <number> --compileOnStart true",
-    "startServerFromEnv": "tsx index.ts --loadFromEnvFile",
+    "start": "tsx index.ts --srcExtensionDir <string> --updateUrl <string> --privateKeyPath <string> --dstDir <string> --enableOverridingManifest --hotReload <string> --hostname <string> --port <number> --compileOnStart true",
+    "startFromEnv": "tsx index.ts --loadFromEnvFile",
     "dev": "tsx watch index.ts --loadFromEnvFile",
     "startTunnel": "ssh -R crx-server.serveo.net:80:localhost:8001 serveo.net",
     "test": "vitest"
